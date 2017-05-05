@@ -4,7 +4,9 @@
 
 var customFileUpload = (function(){
 
-    var main_obj;
+    var main_obj,reader;
+    
+    reader = new FileReader();
 
     function initialize(param_obj){
 
@@ -20,18 +22,6 @@ var customFileUpload = (function(){
 
         }
 
-    }
-
-    function containsFiles(event) {
-        if (event.dataTransfer.types) {
-            for (var i=0; i<event.dataTransfer.types.length; i++) {
-                if (event.dataTransfer.types[i] == "Files") {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     function dispatchEvents(dropZone,file_input){
@@ -74,30 +64,33 @@ var customFileUpload = (function(){
         var files = event.target.files;
 
 
-        handleFileSelect(event,files);
+        readMultipleFile(event,files,0);
 
     }
-
-    function handleFileSelect(event,files){
-
+    
+    function readMultipleFile(event,file,index){
+        
+        
         event.stopPropagation();
 
         event.preventDefault();
+        
+        if( index >= file.length ) return;
+        
+        handleFileSelect(event,file,file[index],index);
+        
+        
+        
+        
+    }
+    
 
-       // var files = event.dataTransfer.files || event.target.files;
+    function handleFileSelect(event,files,file,index){
 
-        for(var i=0,file;file=files[i];i++){
+        event.stopPropagation();
 
-            if(i>=files.length){
-
-                break;
-
-            }
-
-            (function(file){
-
-                var reader = new FileReader();
-
+        event.preventDefault();   
+                
                 var container = document.createElement('div');
 
                 container.className = 'container';
@@ -127,9 +120,7 @@ var customFileUpload = (function(){
 
                 }
 
-                reader.onprogress = (function(myfile,percent){
-
-                    return function (event){
+                reader.onprogress = function (event){
 
                         if (event.lengthComputable) {
 
@@ -144,11 +135,8 @@ var customFileUpload = (function(){
                         }
                     }
 
-                })(file,percent);
 
-                reader.onloadend = (function(myfile,percent,container){
-
-                    return  function (event){
+                reader.onload= function (event){
 
                         percent.style.width = '100%';
 
@@ -167,17 +155,18 @@ var customFileUpload = (function(){
                         container.style.background = 'white';
 
                         container.appendChild(img);
+                
+                        reader.readyState = 0;
+                    
+                        readMultipleFile(event,files,index+1);
 
                     }
 
-                    })(file,percent,container);
+                
 
 
             reader.readAsDataURL(file);
 
-            })(file);
-
-        }
 
     }
 
@@ -193,6 +182,6 @@ var customFileUpload = (function(){
 
 return {
 
-    initialize : initialize
+    initialize : initialize 
 }
 })();
