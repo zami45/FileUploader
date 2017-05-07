@@ -4,7 +4,7 @@
 
 var customFileUpload = (function(){
 
-    var main_obj,reader,containers,container_arr=[],prev_length;
+    var main_obj,reader,containers,container_arr=[],prev_length,file_arr=[];
     
     reader = new FileReader();
 
