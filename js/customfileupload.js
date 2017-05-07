@@ -4,7 +4,7 @@
 
 var customFileUpload = (function(){
 
-    var main_obj,reader;
+    var main_obj,reader,containers,container_arr=[],prev_length;
     
     reader = new FileReader();
 
@@ -50,26 +50,59 @@ var customFileUpload = (function(){
 
         event.preventDefault();
 
-        var files = event.dataTransfer.files;
+        //var files = event.dataTransfer.files;
 
         file_input.files = event.dataTransfer.files;
+        
+        console.log(file_input.files);
 
     }
 
     function changeEvent(event,file_input){
+        
+        var indexContainer,index=0;
+        
         event.stopPropagation();
 
         event.preventDefault();
 
         var files = event.target.files;
+        
+        prev_length = container_arr.length;
+        
+        for(i=0;i<files.length;i++){
+            
+                var container = document.createElement('div');
 
+                container.className = 'container';
 
-        readMultipleFile(event,files,0);
+                container.setAttribute('style','width:100px;height:100px;background:white;');
+            
+                document.getElementById(main_obj.drop_container).appendChild(container);
+            
+                container_arr.push(container);
+            
+        }
+        
+        
+
+        //containers = document.getElementsByClassName('container');
+        
+        if(container_arr.length == 0){
+            
+            indexContainer = 0;
+            
+        }else{
+            
+            indexContainer= prev_length;
+            
+        }
+
+        readMultipleFile(event,files,index,indexContainer);
 
     }
     
-    function readMultipleFile(event,file,index){
-        
+    function readMultipleFile(event,file,index,indexContainer){
         
         event.stopPropagation();
 
@@ -77,26 +110,19 @@ var customFileUpload = (function(){
         
         if( index >= file.length ) return;
         
-        handleFileSelect(event,file,file[index],index);
-        
-        
+        handleFileSelect(event,file,file[index],index,indexContainer);
         
         
     }
     
 
-    function handleFileSelect(event,files,file,index){
+    function handleFileSelect(event,files,file,index,indexContainer){
 
         event.stopPropagation();
 
         event.preventDefault();   
-                
-                var container = document.createElement('div');
 
-                container.className = 'container';
-
-                container.setAttribute('style','width:100px;height:100px;');
-
+        
                 var progress_bar = document.createElement('div');
 
                 progress_bar.setAttribute('class','progress_bar');
@@ -107,7 +133,7 @@ var customFileUpload = (function(){
 
                 progress_bar.appendChild(percent);
 
-                container.appendChild(progress_bar);
+                container_arr[indexContainer].appendChild(progress_bar);
 
                 reader.onloadstart = function (){
 
@@ -115,7 +141,7 @@ var customFileUpload = (function(){
 
                     percent.setAttribute('class','percent');
 
-                    document.getElementById(main_obj.drop_container).appendChild(container);
+                    //document.getElementById(main_obj.drop_container).appendChild(container);
 
 
                 }
@@ -152,13 +178,11 @@ var customFileUpload = (function(){
 
                         img.setAttribute('style','position:absolute;left:0px;');
 
-                        container.style.background = 'white';
-
-                        container.appendChild(img);
+                        container_arr[indexContainer].appendChild(img);
                 
                         reader.readyState = 0;
                     
-                        readMultipleFile(event,files,index+1);
+                        readMultipleFile(event,files,index+1,indexContainer+1);
 
                     }
 
