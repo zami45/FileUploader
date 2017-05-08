@@ -1,12 +1,10 @@
-/**
- * Created by zami on 5/3/2017.
- */
-
 var customFileUpload = (function(){
 
-    var main_obj,reader,containers,container_arr=[],prev_length,file_arr=[];
-    
+    var main_obj,reader,containers,container_arr=[],file_input;
+
     reader = new FileReader();
+
+    validate_reader = new FileReader();
 
     function initialize(param_obj){
 
@@ -16,7 +14,7 @@ var customFileUpload = (function(){
 
             var dropZone = document.getElementById(param_obj.dropzone_id);
 
-            var file_input = document.getElementById(param_obj.file_input);
+            file_input = document.getElementById(param_obj.file_input);
 
             dispatchEvents(dropZone,file_input);
 
@@ -50,146 +48,204 @@ var customFileUpload = (function(){
 
         event.preventDefault();
 
-        //var files = event.dataTransfer.files;
-
         file_input.files = event.dataTransfer.files;
-        
-        console.log(file_input.files);
 
     }
 
     function changeEvent(event,file_input){
-        
-        var indexContainer,index=0;
-        
+
         event.stopPropagation();
 
         event.preventDefault();
+
+        var index=0;
+
+        document.getElementById(main_obj.drop_container).innerHTML = '';
+
+        container_arr = [];
+
+
 
         var files = event.target.files;
-        
-        prev_length = container_arr.length;
-        
+
         for(i=0;i<files.length;i++){
-            
-                var container = document.createElement('div');
 
-                container.className = 'container';
+            var container = document.createElement('div');
 
-                container.setAttribute('style','width:100px;height:100px;background:white;');
-            
-                document.getElementById(main_obj.drop_container).appendChild(container);
-            
-                container_arr.push(container);
-            
-        }
-        
-        
+            container.className = 'container';
 
-        //containers = document.getElementsByClassName('container');
-        
-        if(container_arr.length == 0){
-            
-            indexContainer = 0;
-            
-        }else{
-            
-            indexContainer= prev_length;
-            
+            container.setAttribute('style','width:100px;height:100px;');
+
+            document.getElementById(main_obj.drop_container).appendChild(container);
+
+            container_arr.push(container);
+
+
         }
 
-        readMultipleFile(event,files,index,indexContainer);
+
+        readMultipleFile(files,index);
 
     }
-    
-    function readMultipleFile(event,file,index,indexContainer){
-        
+
+    function readMultipleFile(files,index){
+
+        //event.stopPropagation();
+
+        //event.preventDefault();
+
+        if( index >= files.length ) return;
+
+        //handleFileSelect(event,file,file[index],index);
+        validate(event,files,files[index],index);
+
+
+    }
+
+    function validate(event,files,file,index){
+
         event.stopPropagation();
 
         event.preventDefault();
-        
-        if( index >= file.length ) return;
-        
-        handleFileSelect(event,file,file[index],index,indexContainer);
-        
-        
+
+        validate_reader.onloadend = function(event){
+
+            var uInt=(new Uint8Array(event.target.result)).subarray(0,4);
+
+            var signeture = "";
+
+            for(var i = 0; i < uInt.length; i++) {
+
+                signeture += uInt[i].toString(16);
+
+            }
+
+            switch (signeture) {
+
+                case "89504e47":
+
+                    console.log('png');
+                    handleFileSelect(files,file,index,'image'); //png
+                    break;
+
+                case "47494638":
+
+                    console.log('gif');
+                    handleFileSelect(files,file,index,'image'); //gif
+                    break;
+
+                case "ffd8ffe0":
+                case "ffd8ffe1":
+                case "ffd8ffe2":
+                case "ffd8ffdb":
+
+                    console.log('jpeg');
+                    handleFileSelect(files,file,index,'image'); //jpeg
+                    break;
+
+                case "25504446":
+
+
+                    handleFileSelect(files,file,index,'pdf') //pdf
+                    break;
+
+                default:
+
+                    file_input.value = "";
+                    document.getElementById(main_obj.drop_container).innerHTML="<span style='color:red;'>* some files couldn't pass validation !";
+                    break;
+
+            }
+
+
+
+        }
+
+        validate_reader.readAsArrayBuffer(file);
+
+
     }
-    
 
-    function handleFileSelect(event,files,file,index,indexContainer){
-
-        event.stopPropagation();
-
-        event.preventDefault();   
-
-        
-                var progress_bar = document.createElement('div');
-
-                progress_bar.setAttribute('class','progress_bar');
-
-                var percent = document.createElement('div');
+    function handleFileSelect(files,file,index,type){
 
 
+        var progress_bar = document.createElement('div');
 
-                progress_bar.appendChild(percent);
+        progress_bar.setAttribute('class','progress_bar');
 
-                container_arr[indexContainer].appendChild(progress_bar);
+        var percent = document.createElement('div');
 
-                reader.onloadstart = function (){
+        progress_bar.appendChild(percent);
 
-                    progress_bar.className = 'loading';
+        container_arr[index].appendChild(progress_bar);
 
-                    percent.setAttribute('class','percent');
+        reader.onloadstart = function (){
 
-                    //document.getElementById(main_obj.drop_container).appendChild(container);
+            progress_bar.className = 'loading';
 
+            percent.setAttribute('class','percent');
+
+        }
+
+        reader.onprogress = function (event){
+
+            if (event.lengthComputable) {
+
+                var percentLoaded = Math.round((event.loaded / event.total) * 100);
+
+                if (percentLoaded < 100) {
+
+                    percent.style.width = percentLoaded + '%';
 
                 }
 
-                reader.onprogress = function (event){
-
-                        if (event.lengthComputable) {
-
-                            var percentLoaded = Math.round((event.loaded / event.total) * 100);
-
-                            if (percentLoaded < 100) {
-
-                                percent.style.width = percentLoaded + '%';
-
-                            }
-
-                        }
-                    }
+            }
+        }
 
 
-                reader.onload= function (event){
+        reader.onloadend= function (event){
 
-                        percent.style.width = '100%';
+            percent.style.width = '100%';
 
-                        percent.innerHTML = '&#10004;';
-
-                        var img = new Image();
-
-                        img.src = event.target.result;
-
-                        img.width = 98;
-
-                        img.height = 98;
-
-                        img.setAttribute('style','position:absolute;left:0px;');
-
-                        container_arr[indexContainer].appendChild(img);
-                
-                        reader.readyState = 0;
-                    
-                        readMultipleFile(event,files,index+1,indexContainer+1);
-
-                    }
-
-                
+            percent.innerHTML = '&#10004;';
 
 
-            reader.readAsDataURL(file);
+
+            var img = new Image();
+
+            img.width = 98;
+
+            img.height = 98;
+
+            if(type == 'image'){
+
+                img.src = event.target.result;
+
+            }else if(type == 'pdf'){
+
+                img.src = 'icon/pdf.png';
+                img.src = 'icon/pdf.png';
+            }
+
+
+
+
+            img.setAttribute('style','position:absolute;left:0px;');
+
+            container_arr[index].appendChild(img);
+
+            reader.readyState = 0;
+
+            readMultipleFile(files,index+1);
+
+
+
+        }
+
+
+
+
+        reader.readAsDataURL(file);
 
 
     }
@@ -204,8 +260,8 @@ var customFileUpload = (function(){
 
     }
 
-return {
+    return {
 
-    initialize : initialize 
-}
+        initialize : initialize
+    }
 })();
