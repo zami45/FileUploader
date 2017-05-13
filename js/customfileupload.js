@@ -1,8 +1,10 @@
 var customFileUpload = (function(){
 
-    var main_obj,reader,containers,container_arr=[],file_input;
+    var main_obj,reader,containers,file_input,form_data,error_log=[];
 
     reader = new FileReader();
+    
+    form_data = new FormData();
 
     validate_reader = new FileReader();
 
@@ -24,33 +26,37 @@ var customFileUpload = (function(){
 
     function dispatchEvents(dropZone,file_input){
 
-
-        dropZone.addEventListener('dragover', handleDragOver, false);
-
-        //element.addEventListener('dragleave', handleDragLeave, false);
-
-        dropZone.addEventListener('drop', function (event) {
-
-            dragEvent(event,file_input);
-
-        }, false);
+         dropZone.addEventListener('dragover', handleDragOver, false);
+        //
+        // //element.addEventListener('dragleave', handleDragLeave, false);
+        //
+         dropZone.addEventListener('drop', function (event) {
+        
+             dragEvent(event,file_input);
+        
+         }, false);
 
         file_input.addEventListener('change',function(event) {
 
             changeEvent(event,file_input);
+           
 
         },false);
 
     }
-    function dragEvent(event,file_input) {
-
-        event.stopPropagation();
-
-        event.preventDefault();
-
-        file_input.files = event.dataTransfer.files;
-
-    }
+     function dragEvent(event,file_input) {
+    
+         event.stopPropagation();
+    
+         event.preventDefault();
+         
+         var index=0;
+    
+         var files = event.dataTransfer.files;
+         
+         readMultipleFile(files,index);
+    
+     }
 
     function changeEvent(event,file_input){
 
@@ -60,53 +66,37 @@ var customFileUpload = (function(){
 
         var index=0;
 
-        document.getElementById(main_obj.drop_container).innerHTML = '';
-
-        container_arr = [];
-
-
+        //document.getElementById(main_obj.drop_container).innerHTML = '';
 
         var files = event.target.files;
 
-        for(i=0;i<files.length;i++){
-
-            var container = document.createElement('div');
-
-            container.className = 'container';
-
-            container.setAttribute('style','width:100px;height:100px;');
-
-            document.getElementById(main_obj.drop_container).appendChild(container);
-
-            container_arr.push(container);
-
-
-        }
-
-
         readMultipleFile(files,index);
-
+ 
+    }
+    
+    function showFormData(){
+        
+        console.log(form_data.getAll('files[]'));
+        
+        console.log(error_log);
+        
     }
 
     function readMultipleFile(files,index){
 
-        //event.stopPropagation();
+        if( index >= files.length )
+        {
+            showFormData();
+            return;
+        }
 
-        //event.preventDefault();
-
-        if( index >= files.length ) return;
-
-        //handleFileSelect(event,file,file[index],index);
-        validate(event,files,files[index],index);
-
+        validate(files,files[index],index);
+        
+        
 
     }
 
-    function validate(event,files,file,index){
-
-        event.stopPropagation();
-
-        event.preventDefault();
+    function validate(files,file,index){
 
         validate_reader.onloadend = function(event){
 
@@ -122,15 +112,15 @@ var customFileUpload = (function(){
 
             switch (signeture) {
 
-                case "89504e47":
-
-                    console.log('png');
+                case "89504e47": 
+                    
+                    form_data.append('files[]',file);
                     handleFileSelect(files,file,index,'image'); //png
                     break;
 
                 case "47494638":
 
-                    console.log('gif');
+                    form_data.append('files[]',file);
                     handleFileSelect(files,file,index,'image'); //gif
                     break;
 
@@ -139,35 +129,32 @@ var customFileUpload = (function(){
                 case "ffd8ffe2":
                 case "ffd8ffdb":
 
-                    console.log('jpeg');
+                    form_data.append('files[]',file);
                     handleFileSelect(files,file,index,'image'); //jpeg
                     break;
 
                 case "25504446":
 
-
+                    form_data.append('files[]',file);
                     handleFileSelect(files,file,index,'pdf') //pdf
                     break;
 
                 default:
 
-                    file_input.value = "";
-                    document.getElementById(main_obj.drop_container).innerHTML="<span style='color:red;'>* some files couldn't pass validation !";
+                    var msg = file.name+'is not an acceptable file format';
+                    error_log.push(msg);
+                    readMultipleFile(files,index+1);
                     break;
 
             }
-
-
 
         }
 
         validate_reader.readAsArrayBuffer(file);
 
-
     }
 
     function handleFileSelect(files,file,index,type){
-
 
         var progress_bar = document.createElement('div');
 
@@ -176,8 +163,16 @@ var customFileUpload = (function(){
         var percent = document.createElement('div');
 
         progress_bar.appendChild(percent);
+        
+        var container = document.createElement('div');
 
-        container_arr[index].appendChild(progress_bar);
+        container.className = 'container';
+
+        container.setAttribute('style','width:100px;height:100px;');
+
+        document.getElementById(main_obj.drop_container).appendChild(container);
+
+        container.appendChild(progress_bar);
 
         reader.onloadstart = function (){
 
@@ -198,10 +193,8 @@ var customFileUpload = (function(){
                     percent.style.width = percentLoaded + '%';
 
                 }
-
             }
         }
-
 
         reader.onloadend= function (event){
 
@@ -224,29 +217,19 @@ var customFileUpload = (function(){
             }else if(type == 'pdf'){
 
                 img.src = 'icon/pdf.png';
-                img.src = 'icon/pdf.png';
             }
-
-
-
 
             img.setAttribute('style','position:absolute;left:0px;');
 
-            container_arr[index].appendChild(img);
+            container.appendChild(img);
 
             reader.readyState = 0;
 
             readMultipleFile(files,index+1);
 
-
-
         }
 
-
-
-
         reader.readAsDataURL(file);
-
 
     }
 
